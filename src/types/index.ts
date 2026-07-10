@@ -1,4 +1,4 @@
-export type TaxStatus = 'PAID' | 'UNPAID' | 'NOT_VISITED' | 'EMPTY' | 'INVALID';
+export type TaxStatus = 'BELUM_LUNAS' | 'LUNAS' | 'SUDAH_DIKUNJUNGI' | 'RUMAH_KOSONG' | 'DATA_BERMASALAH';
 
 export interface Taxpayer {
   id: string; // NOP
@@ -16,6 +16,8 @@ export interface Taxpayer {
   status: TaxStatus;
   notes?: string;
   houseId: string;
+  lat?: number;
+  lng?: number;
 }
 
 export interface House {
@@ -35,7 +37,20 @@ export interface Payment {
   date: string;
   collectorId: string;
   photoUrl?: string;
-  location: { lat: number; lng: number };
+  lat?: number;
+  lng?: number;
+  notes?: string;
+}
+
+export interface Visit {
+  id: string;
+  nop: string;
+  date: string;
+  status: TaxStatus;
+  notes?: string;
+  lat?: number;
+  lng?: number;
+  photoUrl?: string;
 }
 
 export interface User {

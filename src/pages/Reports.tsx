@@ -1,80 +1,132 @@
-import React from 'react';
-import { useAppContext } from '../context/AppContext';
-import { formatIDR } from '../lib/utils';
-import { Download, FileText, Calendar } from 'lucide-react';
+import React, { useState } from 'react';
+import { Download, Filter, Calendar } from 'lucide-react';
+import { formatIDR } from '../utils/format';
+import { useAppContext } from '../contexts/AppContext';
+import { Button } from '../components/ui/Button';
 
-export default function Reports() {
+export const Reports = () => {
   const { payments, taxpayers } = useAppContext();
+  const [period, setPeriod] = useState('Bulan Ini');
+
+  const exportReport = () => {
+    const csvContent = [
+      ['ID Transaksi', 'Tanggal', 'NOP', 'Nama WP', 'Nominal', 'Petugas'].join(','),
+      ...payments.map(p => {
+        const t = taxpayers.find(t => t.id === p.nop);
+        return [
+          p.id,
+          new Date(p.date).toLocaleString(),
+          p.nop,
+          `"${t?.name || 'Tidak diketahui'}"`,
+          p.amount,
+          p.collectorId
+        ].join(',');
+      })
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `Laporan_Penerimaan_${period.replace(/\s+/g, '_')}.csv`;
+    link.click();
+  };
 
   const totalCollected = payments.reduce((sum, p) => sum + p.amount, 0);
-  
+
   return (
-    <div className="max-w-5xl mx-auto space-y-6">
-      <div className="flex justify-between items-center">
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-[#001D3D] tracking-tight">Laporan & Audit</h1>
-          <p className="text-sm font-medium text-[#64748B] mt-1">Unduh laporan harian, mingguan, dan rekapitulasi.</p>
+          <h1 className="text-2xl font-black text-slate-900 tracking-tight">Laporan Penerimaan</h1>
+          <p className="text-slate-500 font-medium mt-1">Rekapitulasi pembayaran PBB-P2</p>
         </div>
-        <button className="bg-[#3A86FF] hover:bg-blue-600 text-white px-4 py-2 rounded-xl font-bold shadow-md flex items-center gap-2 transition-colors text-sm">
-          <Download size={16} />
-          Export Data
-        </button>
+        <div className="flex gap-3 w-full sm:w-auto">
+          <Button variant="secondary">
+            <Filter size={18} className="mr-2" /> Filter
+          </Button>
+          <Button variant="primary" onClick={exportReport}>
+            <Download size={18} className="mr-2" /> Export CSV
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="col-span-1 space-y-4">
-          <div className="bg-white p-5 rounded-2xl border border-[#E0E2E6] shadow-sm hover:border-blue-300 cursor-pointer transition-colors group">
-            <div className="w-10 h-10 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center mb-3 group-hover:bg-[#3A86FF] group-hover:text-white transition-colors">
-              <Calendar size={20} />
-            </div>
-            <h3 className="font-bold text-[#001D3D]">Laporan Harian</h3>
-            <p className="text-xs font-medium text-[#64748B] mt-1">Rekap setoran kolektor hari ini.</p>
-          </div>
-          <div className="bg-white p-5 rounded-2xl border border-[#E0E2E6] shadow-sm hover:border-blue-300 cursor-pointer transition-colors group">
-            <div className="w-10 h-10 bg-indigo-100 text-indigo-600 rounded-xl flex items-center justify-center mb-3 group-hover:bg-indigo-600 group-hover:text-white transition-colors">
-              <FileText size={20} />
-            </div>
-            <h3 className="font-bold text-[#001D3D]">Laporan Mingguan / RT</h3>
-            <p className="text-xs font-medium text-[#64748B] mt-1">Capaian target per wilayah RT/RW.</p>
-          </div>
+        <div className="bg-emerald-600 rounded-[32px] p-8 text-white shadow-md relative overflow-hidden">
+          <div className="absolute -right-10 -bottom-10 w-48 h-48 bg-emerald-500 rounded-full blur-2xl opacity-50 pointer-events-none"></div>
+          <p className="text-emerald-100 font-bold uppercase tracking-wider text-xs mb-2 relative z-10">Total Penerimaan</p>
+          <p className="text-4xl font-black relative z-10">{formatIDR(totalCollected)}</p>
+          <p className="text-emerald-200 text-sm mt-4 relative z-10 flex items-center gap-2">
+            <Calendar size={14} /> {payments.length} Transaksi
+          </p>
         </div>
+        
+        <div className="bg-white border border-slate-100 rounded-[32px] p-8 shadow-sm md:col-span-2">
+           <h3 className="text-sm font-black text-slate-800 uppercase tracking-wider mb-6">Periode Laporan</h3>
+           <div className="flex flex-wrap gap-3">
+             {['Hari Ini', 'Minggu Ini', 'Bulan Ini', 'Tahun Ini'].map(p => (
+               <button 
+                 key={p}
+                 onClick={() => setPeriod(p)}
+                 className={`px-6 py-3 rounded-xl text-sm font-bold transition-all ${
+                   period === p 
+                    ? 'bg-slate-900 text-white shadow-md' 
+                    : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
+                 }`}
+               >
+                 {p}
+               </button>
+             ))}
+           </div>
+        </div>
+      </div>
 
-        <div className="col-span-2 bg-white rounded-3xl border border-[#E0E2E6] shadow-sm overflow-hidden flex flex-col">
-          <div className="p-5 border-b border-[#F1F3F5] flex justify-between items-center">
-            <h3 className="text-xs font-black uppercase tracking-wider text-[#001D3D]">Log Aktivitas Terbaru (Audit Trail)</h3>
-            <span className="text-[10px] font-bold text-[#64748B] uppercase tracking-wider">{payments.length} transaksi</span>
-          </div>
-          <div className="flex-1 overflow-auto">
-            {payments.length === 0 ? (
-              <div className="p-8 text-center text-slate-500 font-medium">
-                Belum ada aktivitas pembayaran tercatat.
-              </div>
-            ) : (
-              <ul className="divide-y divide-[#F1F3F5]">
-                {payments.slice().reverse().map((payment) => {
-                  const target = taxpayers.find(t => t.id === payment.nop);
-                  return (
-                    <li key={payment.id} className="p-4 hover:bg-[#F8FAFC] transition-colors flex items-start justify-between">
-                      <div>
-                        <p className="text-sm font-bold text-[#001D3D]">
-                          Pembayaran Diterima - {target?.name || payment.nop}
-                        </p>
-                        <p className="text-[11px] font-medium text-[#64748B] mt-1">
-                          Petugas: Kolektor ID {payment.collectorId} • {new Date(payment.date).toLocaleString('id-ID')}
-                        </p>
-                      </div>
-                      <div className="text-right flex flex-col justify-center">
-                        <p className="text-sm font-bold text-green-600">+{formatIDR(payment.amount)}</p>
-                        <p className="text-[10px] font-bold text-slate-300 mt-1 uppercase tracking-tighter">ID: {payment.id.substring(0, 12)}</p>
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-          </div>
+      <div className="bg-white rounded-[32px] shadow-sm border border-slate-100 overflow-hidden">
+        <div className="p-6 border-b border-slate-100 bg-slate-50/50">
+          <h3 className="font-black text-slate-800">Riwayat Transaksi</h3>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-sm">
+            <thead className="bg-slate-50 text-[11px] font-black uppercase text-slate-400 tracking-wider">
+              <tr>
+                <th className="px-6 py-4">Waktu</th>
+                <th className="px-6 py-4">NOP & Nama WP</th>
+                <th className="px-6 py-4 text-right">Nominal</th>
+                <th className="px-6 py-4">Petugas</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {payments.map(payment => {
+                const taxpayer = taxpayers.find(t => t.id === payment.nop);
+                return (
+                  <tr key={payment.id} className="hover:bg-slate-50/80 transition-colors">
+                    <td className="px-6 py-4">
+                      <div className="font-bold text-slate-800">{new Date(payment.date).toLocaleDateString('id-ID')}</div>
+                      <div className="text-xs text-slate-400 mt-0.5">{new Date(payment.date).toLocaleTimeString('id-ID')}</div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="font-bold text-slate-800">{taxpayer?.name || 'Unknown'}</div>
+                      <div className="text-[11px] font-mono font-bold text-blue-600 mt-0.5">{payment.nop}</div>
+                    </td>
+                    <td className="px-6 py-4 text-right font-black text-emerald-600">
+                      {formatIDR(payment.amount)}
+                    </td>
+                    <td className="px-6 py-4 text-slate-600 font-medium">
+                      {payment.collectorId}
+                    </td>
+                  </tr>
+                );
+              })}
+              {payments.length === 0 && (
+                <tr>
+                  <td colSpan={4} className="px-6 py-12 text-center text-slate-400 font-medium">
+                    Belum ada transaksi pada periode ini.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
   );
-}
+};
